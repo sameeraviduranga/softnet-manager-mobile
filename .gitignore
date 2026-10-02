@@ -21,6 +21,13 @@ migrate_working_dir/
 # VS Code related
 .vscode/
 
+# Local properties & Key files (Apotheke / Sensitive)
+android/local.properties
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
@@ -47,7 +54,6 @@ android/.idea/
 
 # iOS related
 ios/Pods/
-ios/Runner.xcworkspace
 ios/Flutter/App.framework
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
@@ -55,5 +61,4 @@ ios/Flutter/Generated.xcconfig
 ios/Flutter/app.fltdefinition
 
 # macOS / Web / Windows / Linux build outputs
-/build/
 /ephemeral/

@@ -5,6 +5,7 @@ class DioClient {
   final TokenStorageService _storageService;
   late final Dio dio;
   late final Dio refreshDio;
+  Future<bool>? _refreshFuture;
 
   DioClient(this._storageService) {
     dio = Dio(
@@ -49,12 +50,73 @@ class DioClient {
           handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          if (error.response?.statusCode != 401) {
+            handler.next(error);
+            return;
             //refresh flow
           }
-          handler.next(error);
+          final refreshed = await _refreshAccessToken();
+
+          if (!refreshed) {
+            handler.next(error);
+            return;
+          }
+
+          try {
+            final accessToken = await _storageService.getAccessToken();
+
+            final requestOptions = error.requestOptions;
+            requestOptions.headers['Authorization'] = 'Bearer $accessToken';
+            final response = await dio.fetch(requestOptions);
+            handler.resolve(response);
+          } catch (_) {
+            handler.next(error);
+          }
         },
       ),
     );
+  }
+
+  //======================================
+  //RefreshMethod
+  //======================================
+
+  Future<bool> _refreshAccessToken() async {
+    if (_refreshFuture != null) {
+      return await _refreshFuture!;
+    }
+
+    _refreshFuture = _performRefresh();
+
+    try {
+      return await _refreshFuture!;
+    } finally {
+      _refreshFuture = null;
+    }
+  }
+
+  Future<bool> _performRefresh() async {
+    final refreshToken = await _storageService.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+    try {
+      final response = await refreshDio.post(
+        'Auth/RefreshToken',
+        data: {"RefreshToken": refreshToken, "ClientId": "Client1"},
+      );
+
+      final newaccessToken = response.data['Token'];
+      final newrefreshToken = response.data['RefreshToken'];
+
+      await _storageService.saveTokens(
+        accessToken: newaccessToken,
+        refreshToken: newrefreshToken,
+      );
+
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }
