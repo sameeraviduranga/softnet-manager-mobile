@@ -15,7 +15,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [BlocProvider(create: (context) => getIt<AuthCubit>())],
+      providers: [
+        BlocProvider(
+          lazy: false,
+          create: (context) => getIt<AuthCubit>()..restoreSession(),
+        ),
+      ],
       child: MaterialApp.router(
         routerConfig: goRouter,
         title: "softnetmanager",

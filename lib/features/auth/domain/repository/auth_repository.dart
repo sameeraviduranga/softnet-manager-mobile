@@ -5,9 +5,11 @@ import 'package:softnetmanager/core/Errors/failure.dart';
 import 'package:softnetmanager/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:softnetmanager/features/auth/data/models/login_request.dart';
 import 'package:softnetmanager/features/auth/data/models/login_response.dart';
+import 'package:softnetmanager/features/auth/data/models/refresh_request.dart';
 
 abstract class IAuthrepository {
   Future<Either<Failure, LoginResponse>> login(LoginRequest request);
+  Future<Either<Failure, LoginResponse>> refreshToken(RefreshRequest request);
 }
 
 class AuthRepository implements IAuthrepository {
@@ -19,10 +21,34 @@ class AuthRepository implements IAuthrepository {
   @override
   Future<Either<Failure, LoginResponse>> login(LoginRequest request) async {
     if (!await _connectionChecker.hasConnection) {
-      return left(Failure("Internet connection"));
+      return left(Failure("no Internet connection"));
     }
     try {
       final response = await _remoteDataSource.login(request);
+
+      return right(response);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return left(UnAuthorizedFailure("Invalid credential"));
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        return left(NetworkFailure('Unable to connect to server.'));
+      }
+      return left(ServerFailure(e.message ?? 'Server error occurred.'));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, LoginResponse>> refreshToken(
+    RefreshRequest request,
+  ) async {
+    if (!await _connectionChecker.hasConnection) {
+      return left(Failure("no Internet connection"));
+    }
+    try {
+      final response = await _remoteDataSource.refreshToken(request);
 
       return right(response);
     } on DioException catch (e) {

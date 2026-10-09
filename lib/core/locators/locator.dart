@@ -4,6 +4,7 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:softnetmanager/core/network/dio_client.dart';
 import 'package:softnetmanager/core/router/auth_notifier.dart';
 import 'package:softnetmanager/core/storage/token_storage_service.dart';
+import 'package:softnetmanager/features/auth/cubit/AuthSessionManager.dart';
 import 'package:softnetmanager/features/auth/cubit/auth_cubit.dart';
 import 'package:softnetmanager/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:softnetmanager/features/auth/domain/repository/auth_repository.dart';
@@ -17,8 +18,9 @@ void setupDependencies() {
   getIt.registerLazySingleton<TokenStorageService>(
     () => TokenStorageService(getIt<FlutterSecureStorage>()),
   );
+  getIt.registerLazySingleton<AuthSessionmanager>(() => AuthSessionmanager());
   getIt.registerLazySingleton<DioClient>(
-    () => DioClient(getIt<TokenStorageService>()),
+    () => DioClient(getIt<TokenStorageService>(), getIt<AuthSessionmanager>()),
   );
   getIt.registerLazySingleton<InternetConnectionChecker>(
     () => InternetConnectionChecker.instance,
@@ -34,7 +36,11 @@ void setupDependencies() {
   );
 
   getIt.registerLazySingleton<AuthCubit>(
-    () => AuthCubit(getIt<AuthRepository>(), getIt<TokenStorageService>()),
+    () => AuthCubit(
+      getIt<AuthRepository>(),
+      getIt<TokenStorageService>(),
+      getIt<AuthSessionmanager>(),
+    ),
   );
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier());
 }

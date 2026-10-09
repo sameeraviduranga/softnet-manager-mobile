@@ -1,13 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:softnetmanager/core/storage/token_storage_service.dart';
+import 'package:softnetmanager/features/auth/cubit/AuthSessionManager.dart';
 
 class DioClient {
   final TokenStorageService _storageService;
+  final AuthSessionmanager _authSessionmanager;
   late final Dio dio;
   late final Dio refreshDio;
   Future<bool>? _refreshFuture;
 
-  DioClient(this._storageService) {
+  DioClient(this._storageService, this._authSessionmanager) {
     dio = Dio(
       BaseOptions(
         baseUrl: 'http://192.168.1.100:5001/api', //ipaddress
@@ -98,6 +100,7 @@ class DioClient {
   Future<bool> _performRefresh() async {
     final refreshToken = await _storageService.getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
+      await handleRefreshFailure();
       return false;
     }
     try {
@@ -116,7 +119,16 @@ class DioClient {
 
       return true;
     } catch (_) {
+      await handleRefreshFailure();
       return false;
     }
+  }
+
+  //======================================
+  //ClearTokens
+  //======================================
+  Future<void> handleRefreshFailure() async {
+    await _storageService.clearTokens();
+    _authSessionmanager.unauthenticated();
   }
 }
